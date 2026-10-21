@@ -54,7 +54,7 @@ export function FinishPage() {
             </Text>
             <Text
               accessibilityRole="header"
-              className="mt-2.5 text-[42px] font-bold leading-[46px] tracking-tighter text-ink"
+              className="mt-2.5 text-[32px] font-bold leading-9 tracking-tighter text-ink sm:text-[42px] sm:leading-[46px]"
             >
               Here&apos;s how today read
             </Text>
@@ -99,7 +99,7 @@ export function FinishPage() {
               </View>
             </View>
 
-            <View className="w-full lg:w-60">
+            <View className="w-60 self-center lg:self-auto">
               <View className="mb-1 flex-row items-baseline justify-between">
                 <Text className="text-[15px] font-semibold text-ink">This week&apos;s plant</Text>
                 <Text className="text-[13px] text-muted" style={{ opacity: progress }}>

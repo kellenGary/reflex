@@ -99,7 +99,9 @@ export function Sidebar() {
             {weekCount === 0 ? 'Not planted yet' : vitalityLabel(plant.vitality)}
           </Text>
         </View>
-        <Plant state={plant} sway />
+        <View className="w-56 self-center lg:w-full">
+          <Plant state={plant} sway />
+        </View>
         <View className="mt-3.5 h-1 rounded-sm bg-track">
           <View
             className="h-1 rounded-sm bg-meaning"

@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import { useEffect, useMemo } from 'react';
 import { Platform, Pressable, Text, View, type ViewStyle } from 'react-native';
 
+import { useIsWide } from '@/lib/breakpoints';
 import { weekStartKey } from '@/lib/dates';
 import { plantStateForWeek } from '@/lib/plant';
 import { Button, Container, Reveal, Screen, Wordmark } from '@/shared-components';
@@ -20,6 +21,7 @@ export function HomePage() {
   const { status, errorKind, reload, entries, today } = useEntries();
   const { session, signOut } = useAuth();
   const router = useRouter();
+  const isWide = useIsWide();
   const userId = session?.user.id;
   const isNewUser = status === 'ready' && entries.length === 0;
 
@@ -92,11 +94,11 @@ export function HomePage() {
             <Text className="text-sm text-muted">Sign out</Text>
           </Pressable>
         </View>
-        <View className="mt-6 flex-col-reverse gap-12 lg:flex-row lg:items-start lg:gap-[72px]">
+        <View className="mt-6 flex-col-reverse items-center gap-12 lg:flex-row lg:items-start lg:gap-[72px]">
           <View className="w-full max-w-[680px] lg:flex-1">
             <Feed groups={groups} />
           </View>
-          <View className="w-full lg:w-[340px]" style={sticky}>
+          <View className="w-full max-w-[680px] lg:w-[340px] lg:max-w-[340px]" style={isWide ? sticky : undefined}>
             <Reveal delay={100}>
               <Sidebar />
             </Reveal>

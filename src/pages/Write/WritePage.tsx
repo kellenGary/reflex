@@ -1,5 +1,5 @@
 import { Redirect, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useRef, useState, type ComponentRef } from 'react';
 import { Platform, Pressable, ScrollView, Text, TextInput, View, type TextStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -20,6 +20,25 @@ export function WritePage() {
   const [promptIndex, setPromptIndex] = useState(0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [nativeHeight, setNativeHeight] = useState(0);
+  const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
+  const inputRef = useRef<ComponentRef<typeof TextInput>>(null);
+  const caretEnd = useRef(0);
+
+  // The editor grows with what is written, so the page itself is what scrolls (endlessly, no inner scrollbar).
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      const el = inputRef.current as unknown as HTMLTextAreaElement | null;
+      if (el) {
+        el.style.height = 'auto';
+        el.style.height = `${el.scrollHeight}px`;
+      }
+    }
+    // Keep the line being typed in view when writing at the end.
+    if (caretEnd.current >= text.length - 1) {
+      requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: false }));
+    }
+  }, [text]);
 
   if (status !== 'ready') return null; // wait for entries so we know whether today is already written
 
@@ -59,8 +78,14 @@ export function WritePage() {
           </View>
         </View>
 
-        <ScrollView className="flex-1" keyboardShouldPersistTaps="handled">
-          <View className="w-full max-w-[680px] gap-3.5 self-center px-5 pt-16 lg:px-8 lg:pt-24">
+        <ScrollView
+          ref={scrollRef}
+          className="flex-1"
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          automaticallyAdjustKeyboardInsets
+        >
+          <View className="w-full max-w-[680px] gap-3.5 self-center px-5 pb-48 pt-10 sm:pt-16 lg:px-8 lg:pt-24">
             {firstEntry && (
               <Reveal delay={500}>
                 <Text className="mb-1 text-xs font-semibold uppercase tracking-widest text-muted">
@@ -71,7 +96,7 @@ export function WritePage() {
             <Reveal delay={600}>
               <Text
                 accessibilityRole="header"
-                className="text-[42px] font-bold leading-[46px] tracking-tighter text-ink"
+                className="text-[32px] font-bold leading-9 tracking-tighter text-ink sm:text-[42px] sm:leading-[46px]"
               >
                 {formatLong(today)}
               </Text>
@@ -96,6 +121,7 @@ export function WritePage() {
               </Reveal>
             )}
             <TextInput
+              ref={inputRef}
               autoFocus
               multiline
               value={text}
@@ -103,9 +129,17 @@ export function WritePage() {
               placeholder="Start writing…"
               placeholderTextColor="#B8B29B"
               accessibilityLabel="Today's entry"
+              onSelectionChange={(e) => {
+                caretEnd.current = e.nativeEvent.selection.end;
+              }}
+              onContentSizeChange={(e) => Platform.OS !== 'web' && setNativeHeight(e.nativeEvent.contentSize.height)}
               scrollEnabled={false}
               className="mt-6 min-h-[360px] text-[19px] leading-8 text-ink"
-              style={[{ textAlignVertical: 'top' }, noOutline]}
+              style={[
+                { textAlignVertical: 'top' },
+                Platform.OS !== 'web' && nativeHeight ? { height: Math.max(360, nativeHeight) } : null,
+                noOutline,
+              ]}
             />
           </View>
         </ScrollView>

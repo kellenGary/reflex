@@ -16,6 +16,17 @@ const schema = z.object({
 
 export type Env = z.infer<typeof schema>;
 
+/**
+ * Turns the comma-separated CORS_ORIGINS into clean origins: trims spaces and a trailing slash
+ * ("https://site.app/" is not the origin a browser sends), and drops blanks.
+ */
+export function parseOrigins(raw: string): string[] {
+  return raw
+    .split(',')
+    .map((o) => o.trim().replace(/\/+$/, ''))
+    .filter(Boolean);
+}
+
 export function loadEnv(source: Record<string, string | undefined> = process.env): Env {
   const parsed = schema.safeParse(source);
   if (!parsed.success) {

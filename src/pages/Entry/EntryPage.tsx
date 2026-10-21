@@ -2,6 +2,7 @@ import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Platform, Pressable, Text, TextInput, View, type TextStyle, type ViewStyle } from 'react-native';
 
+import { useIsWide } from '@/lib/breakpoints';
 import { addDays, formatLong, formatShort, weekNumber } from '@/lib/dates';
 import { dailySeries } from '@/lib/series';
 import { SIGNALS } from '@/lib/signals';
@@ -31,6 +32,7 @@ function DayArrow({ label, glyph, onPress }: { label: string; glyph: string; onP
 
 export function EntryPage() {
   const router = useRouter();
+  const isWide = useIsWide();
   const { date } = useLocalSearchParams<{ date: string }>();
   const { status, entries, today, getEntry, updateEntry } = useEntries();
   const entry = date ? getEntry(date) : undefined;
@@ -84,7 +86,9 @@ export function EntryPage() {
               onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
               className="min-h-11 justify-center"
             >
-              <Text className="text-sm text-muted">‹ Back to journal</Text>
+              <Text className="text-sm text-muted">
+                ‹ Back<Text className="hidden sm:flex"> to journal</Text>
+              </Text>
             </Pressable>
             {editing ? (
               <>
@@ -104,7 +108,7 @@ export function EntryPage() {
           </View>
         </View>
 
-        <View className="mt-10 flex-col gap-12 lg:flex-row lg:items-start lg:gap-[72px]">
+        <View className="mt-6 flex-col items-center gap-12 sm:mt-10 lg:flex-row lg:items-start lg:gap-[72px]">
           <View className="w-full min-w-0 max-w-[680px] lg:flex-1">
             <Text className="text-xs font-semibold uppercase tracking-widest text-muted">
               Week {weekNumber(entry.date)}
@@ -113,7 +117,7 @@ export function EntryPage() {
               <DayArrow label="Previous entry" glyph="‹" onPress={older ? () => goTo(older) : undefined} />
               <Text
                 accessibilityRole="header"
-                className="flex-shrink text-4xl font-bold leading-[42px] tracking-tighter text-ink lg:text-[42px] lg:leading-[46px]"
+                className="flex-shrink text-[28px] font-bold leading-8 tracking-tighter text-ink sm:text-4xl sm:leading-[42px] lg:text-[42px] lg:leading-[46px]"
               >
                 {formatLong(entry.date)}
               </Text>
@@ -143,7 +147,7 @@ export function EntryPage() {
             )}
           </View>
 
-          <View className="w-full pt-1 lg:w-[340px]" style={sticky}>
+          <View className="w-full max-w-[680px] pt-1 lg:w-[340px] lg:max-w-[340px]" style={isWide ? sticky : undefined}>
             <Text className="mb-5 text-[15px] font-semibold text-ink">How it scored</Text>
             <View className="gap-5">
               {SIGNALS.map((s, i) => (

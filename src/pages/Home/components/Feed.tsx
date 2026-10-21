@@ -16,7 +16,7 @@ function WeekDivider({ group }: { group: FeedGroup }) {
     : `Week ${weekNumber(group.weekStart)}, ${weekRangeLabel(group.weekStart)}`;
   return (
     <View className="flex-row items-center gap-4 border-t border-line pb-6 pt-2">
-      <View className="w-40" accessibilityLabel={`Plant for week ${weekNumber(group.weekStart)}`}>
+      <View className="w-28 sm:w-40" accessibilityLabel={`Plant for week ${weekNumber(group.weekStart)}`}>
         <Plant tight state={group.plant} />
       </View>
       <View className="flex-1 gap-1">

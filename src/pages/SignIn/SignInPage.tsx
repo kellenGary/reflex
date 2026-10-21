@@ -85,7 +85,7 @@ export function SignInPage() {
             </View>
 
             {/* Form */}
-            <View className="w-full pb-10 lg:w-[440px] lg:pb-0">
+            <View className="w-full max-w-[480px] self-center pb-10 lg:w-[440px] lg:self-auto lg:pb-0">
               <Reveal delay={300}>
                 <View
                   className="rounded-3xl bg-[#FFFCF3] p-6 lg:p-8"
