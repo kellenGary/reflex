@@ -1,0 +1,20 @@
+// Mirrors the Tailwind tokens in tailwind.config.js. SVG props can't take classNames, so they read from here.
+export const colors = {
+  cream: '#F8F3E6',
+  ink: '#2A2A24',
+  muted: '#77735F',
+  body: '#4A4A3E',
+  line: '#E3DAC3',
+  track: '#E9E1CC',
+  depression: '#9A8660',
+  anxiety: '#D98E45',
+  meaning: '#6F9449',
+  leafLight: '#CFDDB8',
+  leafMid: '#BCD0A0',
+  leafNew: '#DCE8BF',
+  pot: '#F1E5CF',
+  potRim: '#EADBBF',
+  blobSage: '#CFDDB8',
+  blobYellow: '#F1E1A0',
+  blobPeach: '#F2C9A0',
+} as const;

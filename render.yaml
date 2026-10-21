@@ -1,0 +1,27 @@
+# Render Blueprint for the API. In Render: New > Blueprint, pick this repo.
+services:
+  - type: web
+    name: reflex-api
+    runtime: node
+    rootDir: server
+    plan: starter # "free" works but sleeps when idle, so the first request after a break takes ~30s+
+    buildCommand: npm install
+    startCommand: npm run start:prod
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # Secrets and per-environment values: Render asks for these on first deploy (they are not stored in git).
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: ENTRY_ENCRYPTION_KEY
+        sync: false
+      - key: JEV_API_KEY
+        sync: false
+      # Your Vercel site address, e.g. https://reflex.vercel.app (comma-separate several). No trailing slash.
+      - key: CORS_ORIGINS
+        sync: false
