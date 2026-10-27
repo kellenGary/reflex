@@ -9,7 +9,7 @@ import { createApp } from '../src/app';
 import type { Db } from '../src/db/client';
 import { entries, } from '../src/db/schema';
 import * as schema from '../src/db/schema';
-import { fakeClassify } from './fake-classifier';
+import { fakeClassify, fakeTag } from './fake-classifier';
 
 const ALICE = '11111111-1111-4111-8111-111111111111';
 const BOB = '22222222-2222-4222-8222-222222222222';
@@ -19,20 +19,22 @@ let db: Db;
 const deleteAuthUser = vi.fn(async () => {});
 let classify = fakeClassify;
 
-const app = () =>
-  createApp({
-    db,
-    key: randomBytesKey,
-    // Tokens are just "user:<id>" in tests.
-    verifyToken: async (token) => {
-      if (!token.startsWith('user:')) throw new Error('bad token');
-      return { userId: token.slice(5) };
-    },
-    deleteAuthUser,
-    classify: classify,
-    corsOrigins: ['http://localhost:8081'],
-    now: () => NOW,
-  });
+const depsFor = () => ({
+  db,
+  key: randomBytesKey,
+  // Tokens are just "user:<id>" in tests.
+  verifyToken: async (token: string) => {
+    if (!token.startsWith('user:')) throw new Error('bad token');
+    return { userId: token.slice(5) };
+  },
+  deleteAuthUser,
+  classify,
+  tag: fakeTag,
+  corsOrigins: ['http://localhost:8081'],
+  now: () => NOW,
+});
+
+const app = () => createApp(depsFor());
 
 const randomBytesKey = randomBytes(32);
 
@@ -137,6 +139,96 @@ describe('entries', () => {
     await put('2026-10-19', 'bye');
     expect((await call('/v1/entries/2026-10-19', { method: 'DELETE', as: ALICE })).status).toBe(204);
     expect((await call('/v1/entries/2026-10-19', { as: ALICE })).status).toBe(404);
+  });
+});
+
+describe('themes and the crisis check', () => {
+  it('returns themes and a crisis flag with each entry, stored encrypted', async () => {
+    const calm = await (await put('2026-10-18', 'Went for a hike with a friend, then work stuff.')).json();
+    expect(calm.themes).toEqual(expect.arrayContaining(['work', 'friends', 'outdoors']));
+    expect(calm.crisis).toBe(false);
+
+    const flagged = await (await put('2026-10-19', 'I do not know how to go on. Some days I want to die.')).json();
+    expect(flagged.crisis).toBe(true);
+    expect((await (await call('/v1/entries/2026-10-19', { as: ALICE })).json()).crisis).toBe(true);
+
+    const [row] = await db.select().from(entries).where(eq(entries.entryDate, '2026-10-19'));
+    expect(row.metaEnc).not.toContain('crisis');
+    expect(row.metaEnc?.startsWith('v1.')).toBe(true);
+  });
+
+  it('refresh-insights tags older entries without changing their scores', async () => {
+    await put('2026-10-18', 'Deadline at work and no sleep, a friend called.');
+    const before = await (await call('/v1/entries/2026-10-18', { as: ALICE })).json();
+    await db.update(entries).set({ metaEnc: null }); // simulate an entry from before themes existed
+    const untagged = await (await call('/v1/entries/2026-10-18', { as: ALICE })).json();
+    expect(untagged.themes).toEqual([]);
+
+    const res = await (await call('/v1/refresh-insights', { method: 'POST', as: ALICE })).json();
+    expect(res).toEqual({ updated: 1, failed: 0, more: false });
+    const after = await (await call('/v1/entries/2026-10-18', { as: ALICE })).json();
+    expect(after.themes).toEqual(expect.arrayContaining(['work', 'sleep', 'friends']));
+    expect(after.scores).toEqual(before.scores);
+  });
+
+  it('refresh-insights keeps what it could tag when some entries fail, and fails only if nothing works', async () => {
+    await put('2026-10-17', 'work friend');
+    await put('2026-10-18', 'boom this one fails');
+    await db.update(entries).set({ metaEnc: null });
+
+    const flaky = createApp({ ...depsFor(), tag: async (t) => (t.includes('boom') ? Promise.reject(new Error('net down')) : fakeTag(t)) });
+    const headers = { Authorization: `Bearer user:${ALICE}` };
+    const partial = await (await flaky.request('/v1/refresh-insights', { method: 'POST', headers })).json();
+    expect(partial).toEqual({ updated: 1, failed: 1, more: true });
+    const tagged = await db.select().from(entries).where(eq(entries.entryDate, '2026-10-17'));
+    expect(tagged[0].metaEnc).not.toBeNull();
+
+    // Only the failing entry is left, and now everything fails: that surfaces as an error.
+    const dead = createApp({ ...depsFor(), tag: async () => Promise.reject(new Error('net down')) });
+    expect((await dead.request('/v1/refresh-insights', { method: 'POST', headers })).status).toBe(502);
+  });
+
+  it('refresh-insights only touches the signed-in user', async () => {
+    await put('2026-10-18', 'work', BOB);
+    await db.update(entries).set({ metaEnc: null });
+    await call('/v1/refresh-insights', { method: 'POST', as: ALICE });
+    const bobs = await db.select().from(entries).where(eq(entries.userId, BOB));
+    expect(bobs[0].metaEnc).toBeNull();
+  });
+});
+
+describe('check-in (feeling)', () => {
+  const putWith = (date: string, body: object, as = ALICE) =>
+    call(`/v1/entries/${date}`, { method: 'PUT', body: JSON.stringify(body), as });
+
+  it('stores a 1-5 feeling with the entry, encrypted', async () => {
+    const saved = await (await putWith('2026-10-19', { text: 'A fine day.', feeling: 4 })).json();
+    expect(saved.feeling).toBe(4);
+    expect((await (await call('/v1/entries/2026-10-19', { as: ALICE })).json()).feeling).toBe(4);
+    const [row] = await db.select().from(entries);
+    expect(row.metaEnc).not.toContain('feeling');
+  });
+
+  it('is null when skipped, and editing the text keeps the feeling unless told otherwise', async () => {
+    expect((await (await putWith('2026-10-18', { text: 'No check-in today.' })).json()).feeling).toBeNull();
+
+    await putWith('2026-10-19', { text: 'First version.', feeling: 2 });
+    expect((await (await putWith('2026-10-19', { text: 'Edited version.' })).json()).feeling).toBe(2);
+    expect((await (await putWith('2026-10-19', { text: 'Edited again.', feeling: 5 })).json()).feeling).toBe(5);
+    expect((await (await putWith('2026-10-19', { text: 'Cleared.', feeling: null })).json()).feeling).toBeNull();
+  });
+
+  it('rejects values outside 1-5', async () => {
+    expect((await putWith('2026-10-19', { text: 'x', feeling: 0 })).status).toBe(400);
+    expect((await putWith('2026-10-19', { text: 'x', feeling: 6 })).status).toBe(400);
+    expect((await putWith('2026-10-19', { text: 'x', feeling: 2.5 })).status).toBe(400);
+  });
+
+  it('refresh-insights does not invent a feeling', async () => {
+    await put('2026-10-18', 'work');
+    await db.update(entries).set({ metaEnc: null });
+    await call('/v1/refresh-insights', { method: 'POST', as: ALICE });
+    expect((await (await call('/v1/entries/2026-10-18', { as: ALICE })).json()).feeling).toBeNull();
   });
 });
 

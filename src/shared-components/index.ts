@@ -1,5 +1,5 @@
 export { Button } from './Button';
-export { Container } from './Container';
+export { Column, Container } from './Container';
 export { MiniScores } from './MiniScores';
 export { Plant } from './Plant';
 export { Reveal } from './Reveal';
@@ -10,3 +10,10 @@ export { TrendChart } from './TrendChart';
 export { Wordmark } from './Wordmark';
 export { Screen } from './Screen';
 export { BloomBackground } from './BloomBackground';
+export { EntryRow } from './EntryRow';
+export { PageHeader } from './PageHeader';
+export { AppNav } from './AppNav';
+export { Face } from './Face';
+export { LoadingBlock, LoadingScreen } from './Loader';
+export { LoopingPlant } from './Plant';
+export { FaceMark } from './FaceMark';

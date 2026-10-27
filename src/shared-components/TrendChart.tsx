@@ -7,7 +7,7 @@ import { smoothPath } from '@/lib/chart';
 import { formatShort } from '@/lib/dates';
 import { SIGNALS } from '@/lib/signals';
 import type { Series } from '@/lib/series';
-import { colors } from '@/theme/colors';
+import { useColors } from '@/state/theme';
 
 type TrendChartProps = {
   series: Series;
@@ -37,6 +37,7 @@ export function TrendChart({
   animateOnMount,
   labelFor = formatShort,
 }: TrendChartProps) {
+  const colors = useColors();
   const drawn = useTween(1400, 150);
   const reveal = revealProp ?? (animateOnMount ? drawn : 1);
   const [width, setWidth] = useState(320);
@@ -151,7 +152,7 @@ export function TrendChart({
           style={{
             left: tipLeft,
             width: TIP_W,
-            shadowColor: '#2A2A24',
+            shadowColor: colors.shadow,
             shadowOpacity: 0.12,
             shadowRadius: 8,
             shadowOffset: { width: 0, height: 2 },

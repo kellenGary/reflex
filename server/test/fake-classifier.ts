@@ -1,4 +1,4 @@
-import type { Classify } from '../src/services/jev';
+import type { Classify, Tag } from '../src/services/jev';
 import type { Highlight, Signal } from '../src/types';
 
 /** Deterministic keyword scorer for tests, so the API tests don't call Jev. */
@@ -28,5 +28,19 @@ export const fakeClassify: Classify = async (text) => {
     const jitter = (hash(text + signal) % 11) - 5;
     scores[signal] = Math.max(2, Math.min(98, BASE[signal] + hits.length * 9 + jitter + i));
   });
-  return { scores, highlights };
+  return { scores, highlights, ...(await fakeTag(text)) };
+};
+
+/** Keyword themes plus a crisis check, for tests. */
+export const fakeTag: Tag = async (text) => {
+  const lower = text.toLowerCase();
+  const themes = [
+    ['work', ['work', 'deadline', 'meeting']],
+    ['sleep', ['sleep', 'insomnia']],
+    ['friends', ['friend']],
+    ['outdoors', ['hike', 'walk']],
+  ]
+    .filter(([, words]) => (words as string[]).some((w) => lower.includes(w)))
+    .map(([theme]) => theme as string);
+  return { themes, crisis: lower.includes('want to die') || lower.includes('end my life') };
 };

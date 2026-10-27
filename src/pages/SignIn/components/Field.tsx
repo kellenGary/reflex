@@ -1,3 +1,4 @@
+import { useColors } from '@/state/theme';
 import { forwardRef, useState, type ComponentRef } from 'react';
 import { Platform, Pressable, Text, TextInput, View, type TextInputProps, type TextStyle } from 'react-native';
 
@@ -6,7 +7,11 @@ const noOutline = (Platform.OS === 'web' ? { outlineStyle: 'none' } : {}) as unk
 type FieldProps = TextInputProps & { label: string; secure?: boolean };
 
 /** Labelled input with a visible focus state and, for passwords, a show/hide toggle. */
-export const Field = forwardRef<ComponentRef<typeof TextInput>, FieldProps>(function Field({ label, secure, ...props }, ref) {
+export const Field = forwardRef<ComponentRef<typeof TextInput>, FieldProps>(function Field(
+  { label, secure, ...props },
+  ref,
+) {
+  const { hint } = useColors();
   const [focused, setFocused] = useState(false);
   const [shown, setShown] = useState(false);
   return (
@@ -18,7 +23,7 @@ export const Field = forwardRef<ComponentRef<typeof TextInput>, FieldProps>(func
         <TextInput
           ref={ref}
           accessibilityLabel={label}
-          placeholderTextColor="#B8B29B"
+          placeholderTextColor={hint}
           secureTextEntry={secure && !shown}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}

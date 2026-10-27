@@ -4,10 +4,11 @@ import { Platform, Pressable, ScrollView, Text, TextInput, View, type TextStyle 
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { formatLong } from '@/lib/dates';
-import { BloomBackground, Button, Reveal, Wordmark } from '@/shared-components';
+import { BloomBackground, Button, Reveal, Wordmark, LoadingScreen, LoadingBlock } from '@/shared-components';
 import { saveErrorMessage } from '@/services/api';
 import { useEntries } from '@/state/entries';
-import { colors } from '@/theme/colors';
+import { useColors } from '@/state/theme';
+import { CheckIn } from './CheckIn';
 import { PROMPTS } from './prompts';
 
 // Borderless editor: remove the browser's focus ring on web.
@@ -15,11 +16,13 @@ const noOutline = (Platform.OS === 'web' ? { outlineStyle: 'none' } : {}) as unk
 
 export function WritePage() {
   const router = useRouter();
+  const { hint } = useColors();
   const { status, entries, today, getEntry, addEntry } = useEntries();
   const [text, setText] = useState('');
   const [promptIndex, setPromptIndex] = useState(0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [feeling, setFeeling] = useState<number | null>(null);
   const [nativeHeight, setNativeHeight] = useState(0);
   const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
   const inputRef = useRef<ComponentRef<typeof TextInput>>(null);
@@ -40,7 +43,7 @@ export function WritePage() {
     }
   }, [text]);
 
-  if (status !== 'ready') return null; // wait for entries so we know whether today is already written
+  if (status !== 'ready') return <LoadingScreen />; // wait for entries so we know whether today is already written
 
   // One entry per day: if today is already written, go read it instead.
   // (Not while saving: adding the entry makes it exist, and we're about to go to /finish.)
@@ -56,8 +59,12 @@ export function WritePage() {
     setSaving(true);
     setError(null);
     try {
-      const entry = await addEntry(text.trim());
-      router.replace({ pathname: '/finish', params: { date: entry.date } });
+      const entry = await addEntry(text.trim(), feeling);
+      router.replace(
+        entry.crisis
+          ? { pathname: '/safety', params: { date: entry.date, then: 'finish' } }
+          : { pathname: '/finish', params: { date: entry.date } },
+      );
     } catch (e) {
       setError(saveErrorMessage(e));
       setSaving(false);
@@ -65,7 +72,7 @@ export function WritePage() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.cream }}>
+    <View className="flex-1 bg-cream">
       <BloomBackground />
       <SafeAreaView style={{ flex: 1 }}>
         <View className="h-[72px] flex-row items-center justify-between px-5 lg:px-8">
@@ -96,7 +103,7 @@ export function WritePage() {
             <Reveal delay={600}>
               <Text
                 accessibilityRole="header"
-                className="text-[32px] font-bold leading-9 tracking-tighter text-ink sm:text-[42px] sm:leading-[46px]"
+                className="text-[32px] font-bold leading-9 tracking-normal text-ink sm:text-[42px] sm:leading-[46px]"
               >
                 {formatLong(today)}
               </Text>
@@ -120,6 +127,9 @@ export function WritePage() {
                 </Text>
               </Reveal>
             )}
+            <View className="mt-3">
+              <CheckIn value={feeling} onChange={setFeeling} />
+            </View>
             <TextInput
               ref={inputRef}
               autoFocus
@@ -127,7 +137,7 @@ export function WritePage() {
               value={text}
               onChangeText={setText}
               placeholder="Start writing…"
-              placeholderTextColor="#B8B29B"
+              placeholderTextColor={hint}
               accessibilityLabel="Today's entry"
               onSelectionChange={(e) => {
                 caretEnd.current = e.nativeEvent.selection.end;
@@ -145,7 +155,7 @@ export function WritePage() {
         </ScrollView>
 
         <View className="min-h-10 flex-row items-center justify-between gap-4 px-5 lg:px-8">
-          <Text accessibilityRole="alert" className="flex-1 text-xs text-[#A4442E]">
+          <Text accessibilityRole="alert" className="flex-1 text-xs text-roseInk">
             {error}
           </Text>
           <Text className="text-xs text-muted">
@@ -153,6 +163,11 @@ export function WritePage() {
           </Text>
         </View>
       </SafeAreaView>
+      {saving && (
+        <View className="absolute bottom-0 left-0 right-0 top-0 items-center justify-center bg-cream/90">
+          <LoadingBlock message="Reading what you wrote…" />
+        </View>
+      )}
     </View>
   );
 }

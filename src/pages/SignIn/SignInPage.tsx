@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { PlantState } from '@/lib/plant';
 import { BloomBackground, Button, Plant, Reveal, Wordmark } from '@/shared-components';
 import { useAuth } from '@/state/auth';
-import { colors } from '@/theme/colors';
+import { useColors } from '@/state/theme';
 import { Field } from './components/Field';
 
 // A healthy, flowering plant for the welcome panel.
@@ -13,6 +13,7 @@ const SHOWCASE: PlantState = { growth: 0.92, tension: 0.1, droop: 0, carry: 0.8,
 
 export function SignInPage() {
   const { signIn, signUp } = useAuth();
+  const { shadow } = useColors();
   const [mode, setMode] = useState<'in' | 'up'>('up');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -53,7 +54,7 @@ export function SignInPage() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.cream }}>
+    <View className="flex-1 bg-cream">
       <BloomBackground />
       <SafeAreaView style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
@@ -65,7 +66,7 @@ export function SignInPage() {
                 <Reveal delay={150}>
                   <Text
                     accessibilityRole="header"
-                    className="max-w-[520px] text-4xl font-bold leading-[42px] tracking-tighter text-ink lg:text-[52px] lg:leading-[56px]"
+                    className="max-w-[520px] text-4xl font-bold leading-[42px] tracking-normal text-ink lg:text-[52px] lg:leading-[56px]"
                   >
                     A quiet place to write, and notice how you are doing.
                   </Text>
@@ -88,9 +89,9 @@ export function SignInPage() {
             <View className="w-full max-w-[480px] self-center pb-10 lg:w-[440px] lg:self-auto lg:pb-0">
               <Reveal delay={300}>
                 <View
-                  className="rounded-3xl bg-[#FFFCF3] p-6 lg:p-8"
+                  className="rounded-3xl bg-surface p-6 lg:p-8"
                   style={{
-                    shadowColor: '#2A2A24',
+                    shadowColor: shadow,
                     shadowOpacity: 0.08,
                     shadowRadius: 24,
                     shadowOffset: { width: 0, height: 8 },
@@ -147,13 +148,13 @@ export function SignInPage() {
                   </View>
 
                   {error && (
-                    <View accessibilityRole="alert" className="mt-4 rounded-xl bg-[#F6DDD5] px-4 py-3">
-                      <Text className="text-sm leading-5 text-[#8A3622]">{error}</Text>
+                    <View accessibilityRole="alert" className="mt-4 rounded-xl bg-rose px-4 py-3">
+                      <Text className="text-sm leading-5 text-roseInk">{error}</Text>
                     </View>
                   )}
                   {notice && (
-                    <View className="mt-4 rounded-xl bg-[#DDE8CB] px-4 py-3">
-                      <Text className="text-sm leading-5 text-[#3F5A27]">{notice}</Text>
+                    <View className="mt-4 rounded-xl bg-sage px-4 py-3">
+                      <Text className="text-sm leading-5 text-sageInk">{notice}</Text>
                     </View>
                   )}
 

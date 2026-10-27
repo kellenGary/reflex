@@ -2,9 +2,10 @@ import type { ReactNode } from 'react';
 import { View } from 'react-native';
 import Svg, { Circle, Ellipse, G, Line, Path } from 'react-native-svg';
 
-import { useSway, useTweenedNumber } from '@/lib/animation';
+import { useLoop, useSway, useTweenedNumber } from '@/lib/animation';
 import { vitalityLabel, type PlantState } from '@/lib/plant';
 import { colors } from '@/theme/colors';
+import { useColors, useTheme } from '@/state/theme';
 
 /*
  * The week's plant, drawn procedurally from four 0-1 values:
@@ -14,6 +15,12 @@ import { colors } from '@/theme/colors';
  *   carry   -> (last week) sturdier stem, richer soil, a new shoot at the base
  * All coordinates are in a 300x220 viewBox; the stem base sits at (150, 176).
  */
+
+/** Outlines and veins are always this dark ink, so a plant looks the same in light and dark mode. */
+const ink = colors.ink;
+
+/** How far dark mode pulls the fills toward the page color: 0 is identical to light mode. A touch takes the glare off. */
+const DARK_DIM = 0.18;
 
 const GROUND = 176;
 const MAX_H = 148;
@@ -25,7 +32,19 @@ const f = (n: number) => n.toFixed(1);
 function mix(a: string, b: string, t: number): string {
   const pa = [1, 3, 5].map((i) => parseInt(a.slice(i, i + 2), 16));
   const pb = [1, 3, 5].map((i) => parseInt(b.slice(i, i + 2), 16));
-  return `#${pa.map((c, i) => Math.round(c + (pb[i] - c) * clamp01(t)).toString(16).padStart(2, '0')).join('')}`;
+  return `#${pa
+    .map((c, i) =>
+      Math.round(c + (pb[i] - c) * clamp01(t))
+        .toString(16)
+        .padStart(2, '0'),
+    )
+    .join('')}`;
+}
+
+/** Fills keep their colors in dark mode, softened slightly (see DARK_DIM). */
+function useTone(): (hex: string) => string {
+  const { isDark, palette } = useTheme();
+  return (hex) => (isDark ? mix(hex, palette.cream, DARK_DIM) : hex);
 }
 
 /** Healthy green -> yellow -> brown as droop rises. */
@@ -51,6 +70,7 @@ type LeafProps = {
 };
 
 function Leaf({ x, y, rot, len: L, side, fill, droop, tension }: LeafProps) {
+  const tone = useTone();
   if (L < 3) return null;
   const hw = L * 0.3 * (1 - tension * 0.4);
   const tipY = side * droop * 0.38 * L;
@@ -63,9 +83,9 @@ function Leaf({ x, y, rot, len: L, side, fill, droop, tension }: LeafProps) {
 
   return (
     <G transform={`translate(${f(x)} ${f(y)}) rotate(${f(rot)})`}>
-      <Path d={`M0 0 ${upper} ${lower}Z`} fill={fill} stroke={colors.ink} strokeWidth={1.1} strokeLinejoin="round" />
+      <Path d={`M0 0 ${upper} ${lower}Z`} fill={tone(fill)} stroke={ink} strokeWidth={1.1} strokeLinejoin="round" />
       {/* shaded lower half */}
-      <Path d={`${midrib} ${lower}Z`} fill={colors.ink} opacity={0.09} />
+      <Path d={`${midrib} ${lower}Z`} fill={ink} opacity={0.09} />
       {/* browning at the tip */}
       {patch > 0.02 && (
         <Path
@@ -74,14 +94,30 @@ function Leaf({ x, y, rot, len: L, side, fill, droop, tension }: LeafProps) {
           opacity={patch}
         />
       )}
-      <Path d={midrib} fill="none" stroke={colors.ink} strokeWidth={0.9} strokeLinecap="round" />
+      <Path d={midrib} fill="none" stroke={ink} strokeWidth={0.9} strokeLinecap="round" />
       {veinFracs.map((fr) => {
         const by = midY(fr);
         const spread = hw * 0.72 * (1 - fr * 0.55);
         return (
           <G key={fr}>
-            <Line x1={f(fr * L)} y1={f(by)} x2={f(fr * L + 0.17 * L)} y2={f(by - spread)} stroke={colors.ink} strokeWidth={0.6} strokeLinecap="round" />
-            <Line x1={f(fr * L)} y1={f(by)} x2={f(fr * L + 0.17 * L)} y2={f(by + spread)} stroke={colors.ink} strokeWidth={0.6} strokeLinecap="round" />
+            <Line
+              x1={f(fr * L)}
+              y1={f(by)}
+              x2={f(fr * L + 0.17 * L)}
+              y2={f(by - spread)}
+              stroke={ink}
+              strokeWidth={0.6}
+              strokeLinecap="round"
+            />
+            <Line
+              x1={f(fr * L)}
+              y1={f(by)}
+              x2={f(fr * L + 0.17 * L)}
+              y2={f(by + spread)}
+              stroke={ink}
+              strokeWidth={0.6}
+              strokeLinecap="round"
+            />
           </G>
         );
       })}
@@ -90,7 +126,7 @@ function Leaf({ x, y, rot, len: L, side, fill, droop, tension }: LeafProps) {
         <Path
           d={`M${f(0.34 * L)} ${f(-hw * 0.55)} Q${f(0.4 * L)} 0 ${f(0.32 * L)} ${f(hw * 0.5)}`}
           fill="none"
-          stroke={colors.ink}
+          stroke={ink}
           strokeWidth={0.7}
           opacity={0.55}
         />
@@ -100,6 +136,7 @@ function Leaf({ x, y, rot, len: L, side, fill, droop, tension }: LeafProps) {
 }
 
 function Flower({ x, y, s }: { x: number; y: number; s: number }) {
+  const tone = useTone();
   const petal = (k: number, scale: number, fill: string) => (
     <Ellipse
       key={`${scale}-${k}`}
@@ -107,8 +144,8 @@ function Flower({ x, y, s }: { x: number; y: number; s: number }) {
       cy={-11 * s * scale}
       rx={4.6 * s * scale}
       ry={10.5 * s * scale}
-      fill={fill}
-      stroke={colors.ink}
+      fill={tone(fill)}
+      stroke={ink}
       strokeWidth={0.9}
       transform={`rotate(${k * 45 + (scale < 1 ? 22.5 : 0)})`}
     />
@@ -117,21 +154,46 @@ function Flower({ x, y, s }: { x: number; y: number; s: number }) {
     <G transform={`translate(${f(x)} ${f(y)})`}>
       {[0, 1, 2, 3, 4, 5, 6, 7].map((k) => petal(k, 1, '#FBF3D9'))}
       {[0, 1, 2, 3, 4, 5, 6, 7].map((k) => petal(k, 0.62, '#F6E7B8'))}
-      <Circle r={5.6 * s} fill="#F1DE92" stroke={colors.ink} strokeWidth={1} />
-      {[[-1.8, -1.2], [1.6, -1.8], [0.4, 1.8], [-1.4, 1.4], [2, 0.8]].map(([dx, dy], i) => (
-        <Circle key={i} cx={dx * s} cy={dy * s} r={0.55 * s} fill={colors.ink} opacity={0.6} />
+      <Circle r={5.6 * s} fill={tone('#F1DE92')} stroke={ink} strokeWidth={1} />
+      {[
+        [-1.8, -1.2],
+        [1.6, -1.8],
+        [0.4, 1.8],
+        [-1.4, 1.4],
+        [2, 0.8],
+      ].map(([dx, dy], i) => (
+        <Circle key={i} cx={dx * s} cy={dy * s} r={0.55 * s} fill={ink} opacity={0.6} />
       ))}
     </G>
   );
 }
 
 function Bud({ x, y, s }: { x: number; y: number; s: number }) {
+  const tone = useTone();
   return (
     <G transform={`translate(${f(x)} ${f(y)}) scale(${f(s)})`}>
-      <Path d="M0 0 C-7 -6 -6 -18 0 -24 C6 -18 7 -6 0 0Z" fill="#F6E7B8" stroke={colors.ink} strokeWidth={1.1} strokeLinejoin="round" />
-      <Path d="M0 -2 C-2 -9 -2 -16 0 -22" fill="none" stroke={colors.ink} strokeWidth={0.6} opacity={0.6} />
-      <Path d="M-6 -4 C-11 -8 -10 -13 -8 -15 C-6 -11 -5 -8 -2 -5Z" fill={colors.leafMid} stroke={colors.ink} strokeWidth={0.9} strokeLinejoin="round" />
-      <Path d="M6 -4 C11 -8 10 -13 8 -15 C6 -11 5 -8 2 -5Z" fill={colors.leafMid} stroke={colors.ink} strokeWidth={0.9} strokeLinejoin="round" />
+      <Path
+        d="M0 0 C-7 -6 -6 -18 0 -24 C6 -18 7 -6 0 0Z"
+        fill={tone('#F6E7B8')}
+        stroke={ink}
+        strokeWidth={1.1}
+        strokeLinejoin="round"
+      />
+      <Path d="M0 -2 C-2 -9 -2 -16 0 -22" fill="none" stroke={ink} strokeWidth={0.6} opacity={0.6} />
+      <Path
+        d="M-6 -4 C-11 -8 -10 -13 -8 -15 C-6 -11 -5 -8 -2 -5Z"
+        fill={tone(colors.leafMid)}
+        stroke={ink}
+        strokeWidth={0.9}
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M6 -4 C11 -8 10 -13 8 -15 C6 -11 5 -8 2 -5Z"
+        fill={tone(colors.leafMid)}
+        stroke={ink}
+        strokeWidth={0.9}
+        strokeLinejoin="round"
+      />
     </G>
   );
 }
@@ -139,6 +201,8 @@ function Bud({ x, y, s }: { x: number; y: number; s: number }) {
 type Live = Omit<PlantState, 'vitality'>;
 
 function PlantDrawing({ growth: g, tension: a, droop: d, carry: c, tight }: Live & { tight?: boolean }) {
+  const { track } = useColors();
+  const tone = useTone();
   const H = 34 + (MAX_H - 34) * g;
   const size = 0.62 + 0.45 * g;
   const stemColor = mix('#98B27A', '#C9B88A', d);
@@ -171,7 +235,7 @@ function PlantDrawing({ growth: g, tension: a, droop: d, carry: c, tight }: Live
     const base = i % 2 ? colors.leafLight : colors.leafMid;
     leaves.push(
       <G key={`l${i}`}>
-        <Line x1={f(x0)} y1={f(y0)} x2={f(ox)} y2={f(oy)} stroke={colors.ink} strokeWidth={1} strokeLinecap="round" />
+        <Line x1={f(x0)} y1={f(y0)} x2={f(ox)} y2={f(oy)} stroke={ink} strokeWidth={1} strokeLinecap="round" />
         <Leaf x={ox} y={oy} rot={rot} len={len} side={side} fill={wilt(base, d)} droop={d} tension={a} />
       </G>,
     );
@@ -196,10 +260,28 @@ function PlantDrawing({ growth: g, tension: a, droop: d, carry: c, tight }: Live
     const ang = 55 + d * 62;
     branches.push(
       <G key={`b${i}`}>
-        <Path d={path} fill="none" stroke={colors.ink} strokeWidth={stemW * 0.55 + 2} strokeLinecap="round" />
-        <Path d={path} fill="none" stroke={stemColor} strokeWidth={stemW * 0.55} strokeLinecap="round" />
-        <Leaf x={ex} y={ey} rot={-90 + side * ang} len={30 * size * fr} side={side} fill={wilt(colors.leafLight, d)} droop={d} tension={a} />
-        <Leaf x={(sx + ex) / 2} y={(sy + ey) / 2 - 3} rot={-90 - side * (ang - 20)} len={20 * size * fr} side={(-side) as 1 | -1} fill={wilt(colors.leafMid, d)} droop={d} tension={a} />
+        <Path d={path} fill="none" stroke={ink} strokeWidth={stemW * 0.55 + 2} strokeLinecap="round" />
+        <Path d={path} fill="none" stroke={tone(stemColor)} strokeWidth={stemW * 0.55} strokeLinecap="round" />
+        <Leaf
+          x={ex}
+          y={ey}
+          rot={-90 + side * ang}
+          len={30 * size * fr}
+          side={side}
+          fill={wilt(colors.leafLight, d)}
+          droop={d}
+          tension={a}
+        />
+        <Leaf
+          x={(sx + ex) / 2}
+          y={(sy + ey) / 2 - 3}
+          rot={-90 - side * (ang - 20)}
+          len={20 * size * fr}
+          side={-side as 1 | -1}
+          fill={wilt(colors.leafMid, d)}
+          droop={d}
+          tension={a}
+        />
       </G>,
     );
   });
@@ -236,38 +318,98 @@ function PlantDrawing({ growth: g, tension: a, droop: d, carry: c, tight }: Live
       style={{ aspectRatio: tight ? 200 / 214 : 300 / 220 }}
       accessibilityLabel={`Plant for the week, ${vitalityLabel(g).toLowerCase()}`}
     >
-      <Ellipse cx={150} cy={209} rx={64} ry={5} fill={colors.track} />
+      <Ellipse cx={150} cy={209} rx={64} ry={5} fill={track} />
       {fallen.map((l, i) => (
         <Leaf key={`f${i}`} x={l.x} y={l.y} rot={l.rot} len={26} side={l.side} fill="#B8976A" droop={0.9} tension={0} />
       ))}
 
       {/* pot */}
-      <Path d="M114 178h72l-8 30h-56z" fill={colors.pot} stroke={colors.ink} strokeWidth={1.2} strokeLinejoin="round" />
-      <Path d="M170 181 L186 181 L178 208 L168 208Z" fill={colors.ink} opacity={0.07} />
+      <Path d="M114 178h72l-8 30h-56z" fill={tone(colors.pot)} stroke={ink} strokeWidth={1.2} strokeLinejoin="round" />
+      <Path d="M170 181 L186 181 L178 208 L168 208Z" fill={ink} opacity={0.07} />
       <Line x1={122} y1={184} x2={127} y2={205} stroke="#FFFBEF" strokeWidth={2} strokeLinecap="round" opacity={0.7} />
-      <Path d="M119 191h62M121 198h58" stroke={colors.ink} strokeWidth={0.6} opacity={0.3} />
-      <Path d="M109 172h82v9h-82z" fill={colors.potRim} stroke={colors.ink} strokeWidth={1.2} strokeLinejoin="round" />
-      <Path d="M109 177h82" stroke={colors.ink} strokeWidth={0.5} opacity={0.3} />
+      <Path d="M119 191h62M121 198h58" stroke={ink} strokeWidth={0.6} opacity={0.3} />
+      <Path d="M109 172h82v9h-82z" fill={tone(colors.potRim)} stroke={ink} strokeWidth={1.2} strokeLinejoin="round" />
+      <Path d="M109 177h82" stroke={ink} strokeWidth={0.5} opacity={0.3} />
       {/* soil */}
-      <Ellipse cx={150} cy={173} rx={37} ry={4.5} fill={soil} stroke={colors.ink} strokeWidth={0.9} />
-      {[[128, 173], [136, 175], [143, 172], [161, 175], [170, 173], [177, 174], [152, 176]].map(([x, y], i) => (
-        <Circle key={i} cx={x} cy={y} r={0.9} fill={colors.ink} opacity={0.35} />
+      <Ellipse cx={150} cy={173} rx={37} ry={4.5} fill={tone(soil)} stroke={ink} strokeWidth={0.9} />
+      {[
+        [128, 173],
+        [136, 175],
+        [143, 172],
+        [161, 175],
+        [170, 173],
+        [177, 174],
+        [152, 176],
+      ].map(([x, y], i) => (
+        <Circle key={i} cx={x} cy={y} r={0.9} fill={ink} opacity={0.35} />
       ))}
 
       {/* new shoot at the base, from a strong last week */}
       {shootFr > 0 && (
         <G>
-          <Path d={`M128 173 Q127 ${f(173 - 10 * shootFr)} ${f(130 - 2 * shootFr)} ${f(173 - 17 * shootFr)}`} fill="none" stroke={colors.ink} strokeWidth={1.1} strokeLinecap="round" />
-          <Leaf x={129} y={173 - 14 * shootFr} rot={-150} len={13 * shootFr} side={-1} fill={colors.leafNew} droop={0} tension={0} />
-          <Leaf x={129} y={173 - 14 * shootFr} rot={-35} len={13 * shootFr} side={1} fill={colors.leafLight} droop={0} tension={0} />
+          <Path
+            d={`M128 173 Q127 ${f(173 - 10 * shootFr)} ${f(130 - 2 * shootFr)} ${f(173 - 17 * shootFr)}`}
+            fill="none"
+            stroke={ink}
+            strokeWidth={1.1}
+            strokeLinecap="round"
+          />
+          <Leaf
+            x={129}
+            y={173 - 14 * shootFr}
+            rot={-150}
+            len={13 * shootFr}
+            side={-1}
+            fill={colors.leafNew}
+            droop={0}
+            tension={0}
+          />
+          <Leaf
+            x={129}
+            y={173 - 14 * shootFr}
+            rot={-35}
+            len={13 * shootFr}
+            side={1}
+            fill={colors.leafLight}
+            droop={0}
+            tension={0}
+          />
         </G>
       )}
 
       {/* stem: ink outline, then colour; thinner toward the top */}
-      <Path d={toPath(stemPoints.slice(0, split))} fill="none" stroke={colors.ink} strokeWidth={stemW + 2.2} strokeLinecap="round" strokeLinejoin="round" />
-      <Path d={toPath(stemPoints.slice(split - 1))} fill="none" stroke={colors.ink} strokeWidth={stemW * 0.7 + 2.2} strokeLinecap="round" strokeLinejoin="round" />
-      <Path d={toPath(stemPoints.slice(0, split))} fill="none" stroke={stemColor} strokeWidth={stemW} strokeLinecap="round" strokeLinejoin="round" />
-      <Path d={toPath(stemPoints.slice(split - 1))} fill="none" stroke={stemColor} strokeWidth={stemW * 0.7} strokeLinecap="round" strokeLinejoin="round" />
+      <Path
+        d={toPath(stemPoints.slice(0, split))}
+        fill="none"
+        stroke={ink}
+        strokeWidth={stemW + 2.2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d={toPath(stemPoints.slice(split - 1))}
+        fill="none"
+        stroke={ink}
+        strokeWidth={stemW * 0.7 + 2.2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d={toPath(stemPoints.slice(0, split))}
+        fill="none"
+        stroke={tone(stemColor)}
+        strokeWidth={stemW}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d={toPath(stemPoints.slice(split - 1))}
+        fill="none"
+        stroke={tone(stemColor)}
+        strokeWidth={stemW * 0.7}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
 
       {branches}
       {leaves}
@@ -302,4 +444,18 @@ export function Plant({ state, from, delay = 0, sway, tight }: PlantProps) {
   const carry = useTweenedNumber(state.carry, 1400, delay, from?.carry);
   const drawing = <PlantDrawing growth={growth} tension={tension} droop={droop} carry={carry} tight={tight} />;
   return sway ? <Swaying tension={tension}>{drawing}</Swaying> : drawing;
+}
+
+/**
+ * A plant that breathes: it grows from a sprout to a flower and settles back, over and over. For loading states.
+ * With reduced motion it holds still, mid-growth.
+ */
+export function LoopingPlant() {
+  const phase = useLoop(4200);
+  const breath = 0.5 - 0.5 * Math.cos(phase * 2 * Math.PI); // 0 -> 1 -> 0, easing at both ends
+  return (
+    <Swaying tension={0}>
+      <PlantDrawing growth={0.1 + 0.82 * breath} tension={0} droop={0} carry={0.6} tight />
+    </Swaying>
+  );
 }

@@ -14,6 +14,8 @@ export const entries = pgTable(
     entryDate: date('entry_date', { mode: 'string' }).notNull(),
     textEnc: text('text_enc').notNull(),
     highlightsEnc: text('highlights_enc').notNull(),
+    // Encrypted JSON { themes, crisis }. Null on entries written before themes existed.
+    metaEnc: text('meta_enc'),
     depression: smallint('depression').notNull(),
     anxiety: smallint('anxiety').notNull(),
     meaning: smallint('meaning').notNull(),

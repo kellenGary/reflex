@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, lte } from 'drizzle-orm';
+import { and, asc, eq, gte, isNull, lte } from 'drizzle-orm';
 
 import type { Db } from './client';
 import { entries, type EntryRow } from './schema';
@@ -8,6 +8,7 @@ export type EntryWrite = {
   entryDate: string;
   textEnc: string;
   highlightsEnc: string;
+  metaEnc: string;
   scores: { depression: number; anxiety: number; meaning: number };
 };
 
@@ -33,6 +34,7 @@ export async function upsertEntry(db: Db, w: EntryWrite): Promise<EntryRow> {
     entryDate: w.entryDate,
     textEnc: w.textEnc,
     highlightsEnc: w.highlightsEnc,
+    metaEnc: w.metaEnc,
     depression: w.scores.depression,
     anxiety: w.scores.anxiety,
     meaning: w.scores.meaning,
@@ -59,4 +61,20 @@ export async function deleteEntry(db: Db, userId: string, entryDate: string): Pr
 export async function deleteAllEntries(db: Db, userId: string): Promise<number> {
   const rows = await db.delete(entries).where(eq(entries.userId, userId)).returning({ id: entries.id });
   return rows.length;
+}
+
+export async function listEntriesMissingMeta(db: Db, userId: string, limit: number): Promise<EntryRow[]> {
+  return db
+    .select()
+    .from(entries)
+    .where(and(eq(entries.userId, userId), isNull(entries.metaEnc)))
+    .orderBy(asc(entries.entryDate))
+    .limit(limit);
+}
+
+export async function setMeta(db: Db, userId: string, entryDate: string, metaEnc: string): Promise<void> {
+  await db
+    .update(entries)
+    .set({ metaEnc })
+    .where(and(eq(entries.userId, userId), eq(entries.entryDate, entryDate)));
 }

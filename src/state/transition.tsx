@@ -3,15 +3,13 @@ import { createContext, useCallback, useContext, useEffect, useState, type React
 import { useWindowDimensions, View } from 'react-native';
 
 import { isReducedMotion, useTween } from '@/lib/animation';
-import { colors } from '@/theme/colors';
+import { useColors } from '@/state/theme';
 
 type Origin = { x: number; y: number };
 type Run = { id: number; href: Href; origin: Origin };
 
 const TransitionContext = createContext<{ go: (href: Href, origin?: Origin) => void } | null>(null);
 
-// Back to front. The last layer is the page colour, so the screen ends fully cream before the swap.
-const LAYERS = [colors.blobSage, colors.blobYellow, colors.blobPeach, colors.cream];
 const STAGGER = 0.1;
 
 const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
@@ -45,20 +43,31 @@ function Circle({
 }
 
 /** Phase 1: colour spreads out from where the user pressed until the whole screen is covered. */
-function Expand({ origin, diameter, onCovered }: { origin: Origin; diameter: number; onCovered: () => void }) {
+// `layers` run back to front. The last is the page colour, so the screen ends fully covered before the swap.
+function Expand({
+  origin,
+  diameter,
+  layers,
+  onCovered,
+}: {
+  origin: Origin;
+  diameter: number;
+  layers: string[];
+  onCovered: () => void;
+}) {
   const p = useTween(950);
   useEffect(() => {
     if (p >= 1) onCovered();
   }, [p, onCovered]);
   return (
     <>
-      {LAYERS.map((color, i) => (
+      {layers.map((color, i) => (
         <Circle
           key={color}
           origin={origin}
           diameter={diameter}
           color={color}
-          scale={clamp01((p - i * STAGGER) / (1 - (LAYERS.length - 1) * STAGGER))}
+          scale={clamp01((p - i * STAGGER) / (1 - (layers.length - 1) * STAGGER))}
         />
       ))}
     </>
@@ -66,14 +75,24 @@ function Expand({ origin, diameter, onCovered }: { origin: Origin; diameter: num
 }
 
 /** Phase 2: the new page is underneath. Dissolve the cover so its own animations play into view. */
-function Dissolve({ origin, diameter, onDone }: { origin: Origin; diameter: number; onDone: () => void }) {
+function Dissolve({
+  origin,
+  diameter,
+  color,
+  onDone,
+}: {
+  origin: Origin;
+  diameter: number;
+  color: string;
+  onDone: () => void;
+}) {
   const t = useTween(700, 250);
   useEffect(() => {
     if (t >= 1) onDone();
   }, [t, onDone]);
   return (
     <View pointerEvents="none" style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, opacity: 1 - t }}>
-      <Circle origin={origin} diameter={diameter} color={colors.cream} scale={1} />
+      <Circle origin={origin} diameter={diameter} color={color} scale={1} />
     </View>
   );
 }
@@ -85,6 +104,7 @@ function Dissolve({ origin, diameter, onDone }: { origin: Origin; diameter: numb
 export function TransitionProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const { width, height } = useWindowDimensions();
+  const palette = useColors();
   const [run, setRun] = useState<Run | null>(null);
   const [covered, setCovered] = useState(false);
 
@@ -129,9 +149,14 @@ export function TransitionProvider({ children }: { children: ReactNode }) {
             style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, overflow: 'hidden', zIndex: 1000 }}
           >
             {covered ? (
-              <Dissolve origin={run.origin} diameter={diameter} onDone={onDone} />
+              <Dissolve origin={run.origin} diameter={diameter} color={palette.cream} onDone={onDone} />
             ) : (
-              <Expand origin={run.origin} diameter={diameter} onCovered={onCovered} />
+              <Expand
+                origin={run.origin}
+                diameter={diameter}
+                layers={[palette.blobSage, palette.blobYellow, palette.blobPeach, palette.cream]}
+                onCovered={onCovered}
+              />
             )}
           </View>
         )}

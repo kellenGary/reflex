@@ -1,3 +1,23 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Fallback values (light, daytime) until ThemeProvider sets the real ones. Keep in sync with src/theme/palettes.ts. */
+:root {
+  --color-cream: 248 243 230;
+  --color-surface: 255 252 243;
+  --color-ink: 42 42 36;
+  --color-muted: 107 103 82;
+  --color-body: 74 74 62;
+  --color-line: 227 218 195;
+  --color-track: 233 225 204;
+  --color-edge: 217 208 182;
+  --color-hint: 184 178 155;
+  --color-sage: 209 226 184;
+  --color-sageInk: 48 73 28;
+  --color-sun: 243 228 166;
+  --color-rose: 241 204 192;
+  --color-roseInk: 138 54 34;
+  --color-roseLine: 226 179 164;
+  --color-roseSoft: 246 217 206;
+}

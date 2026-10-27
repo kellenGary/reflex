@@ -31,13 +31,35 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   return res.status === 204 ? (undefined as T) : ((await res.json()) as T);
 }
 
+/**
+ * Fills in anything an older server doesn't send yet. The app and the server are released separately (and a phone can
+ * keep an old app for weeks), so each must cope with the other being a version behind.
+ */
+function normalize(e: Partial<Entry> & Pick<Entry, 'date' | 'text' | 'scores'>): Entry {
+  return {
+    ...e,
+    highlights: e.highlights ?? [],
+    themes: e.themes ?? [],
+    crisis: e.crisis ?? false,
+    feeling: e.feeling ?? null,
+  };
+}
+
 export const api = {
-  listEntries: () => request<{ entries: Entry[] }>('/v1/entries').then((r) => r.entries),
+  listEntries: () => request<{ entries: Entry[] }>('/v1/entries').then((r) => r.entries.map(normalize)),
   /** Creates or edits the entry for `date`. The server scores the text. */
-  saveEntry: (date: string, text: string) =>
-    request<Entry>(`/v1/entries/${date}`, { method: 'PUT', body: JSON.stringify({ text }) }),
+  /** `feeling` (1-5, or null to clear) is only sent when given; leaving it out keeps what was chosen before. */
+  saveEntry: (date: string, text: string, feeling?: number | null) =>
+    request<Entry>(`/v1/entries/${date}`, { method: 'PUT', body: JSON.stringify({ text, feeling }) }).then(normalize),
   deleteEntry: (date: string) => request<void>(`/v1/entries/${date}`, { method: 'DELETE' }),
-  exportData: () => request<{ exportedAt: string; entries: Entry[] }>('/v1/export'),
+  /** Tags older entries with themes. Call again while `more` is true. */
+  refreshInsights: () =>
+    request<{ updated: number; failed: number; more: boolean }>('/v1/refresh-insights', { method: 'POST' }),
+  exportData: () =>
+    request<{ exportedAt: string; entries: Entry[] }>('/v1/export').then((r) => ({
+      ...r,
+      entries: r.entries.map(normalize),
+    })),
   /** Deletes every entry and the login itself. */
   deleteAccount: () => request<void>('/v1/me', { method: 'DELETE' }),
 };

@@ -93,3 +93,20 @@ export function useSway(periodMs = 7000, amplitude = 1.2): number {
   }, []);
   return deg;
 }
+
+/** A phase from 0 up to 1 that repeats every `periodMs`. Stays at 0.5 if the system asks for less motion. */
+export function useLoop(periodMs: number): number {
+  const [phase, setPhase] = useState(reduceMotion ? 0.5 : 0);
+  useEffect(() => {
+    if (reduceMotion) return;
+    let raf = 0;
+    const t0 = performance.now();
+    const tick = (now: number) => {
+      setPhase(((now - t0) % periodMs) / periodMs);
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [periodMs]);
+  return phase;
+}

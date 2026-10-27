@@ -143,8 +143,13 @@ const plan = Array.from({ length: days }, (_, i) => i + 1)
 let done = 0;
 async function worker(queue: typeof plan) {
   for (let item = queue.shift(); item; item = queue.shift()) {
-    const { scores, highlights } = await classify(item.text);
-    await upsertEntry(db, { userId, entryDate: item.date, scores, ...sealEntry(userId, item.date, item.text, highlights, key) });
+    const { scores, highlights, themes, crisis } = await classify(item.text);
+    await upsertEntry(db, {
+      userId,
+      entryDate: item.date,
+      scores,
+      ...sealEntry(userId, item.date, item.text, highlights, { themes, crisis }, null, key),
+    });
     if (++done % 20 === 0) console.log(`  ${done}/${plan.length}`);
   }
 }

@@ -1,8 +1,10 @@
 import { noul, score, type Questions } from '@typesafe-ai/sdk';
 
-import type { Classification, Highlight, Signal } from '../types';
+import type { Classification, Highlight, Signal, Tags } from '../types';
 
 export type Classify = (text: string) => Promise<Classification>;
+/** Themes and the crisis check only, so older entries can be tagged without changing their scores. */
+export type Tag = (text: string) => Promise<Tags>;
 
 /** Sends one request to Jev and returns its answers by question name. */
 export type JevAsk = (state: string, questions: Questions) => Promise<Record<string, unknown>>;
@@ -57,6 +59,41 @@ const SENTENCE_TASK: Record<Signal, string> = {
 };
 
 const SIGNALS = Object.keys(LEVELS) as Signal[];
+
+/** What an entry is about. Each is a yes/no question, so an entry can carry several themes. Keep keys stable. */
+export const THEMES = [
+  { key: 'work', about: 'work, study, a job, deadlines, or colleagues' },
+  { key: 'sleep', about: 'sleep, tiredness, insomnia, or rest at night' },
+  { key: 'family', about: 'family members such as parents, siblings, or children' },
+  { key: 'friends', about: 'friends or socialising' },
+  { key: 'relationship', about: 'a romantic partner or dating' },
+  { key: 'health', about: 'physical health, illness, pain, food, or the body' },
+  { key: 'money', about: 'money, bills, spending, or financial worry' },
+  { key: 'creative', about: 'creative projects, hobbies, or making things' },
+  { key: 'outdoors', about: 'being outdoors, nature, exercise, or movement' },
+] as const;
+
+const THEME_MIN = 0.6;
+/** Low on purpose: a missed crisis is far worse than a gentle message shown by mistake. */
+const CRISIS_MIN = 0.4;
+const CRISIS_QUESTIONS = {
+  crisis_end_life: 'The writer expresses thoughts of suicide, of wanting to die, or of ending their own life.',
+  crisis_self_harm: 'The writer expresses thoughts of deliberately hurting themselves.',
+} as const;
+
+function tagQuestions(): Questions {
+  const q: Questions = {};
+  for (const t of THEMES) q[`theme_${t.key}`] = noul(`The writer talks about ${t.about}.`);
+  for (const [name, text] of Object.entries(CRISIS_QUESTIONS)) q[name] = noul(text);
+  return q;
+}
+
+function readTags(answers: Record<string, unknown>): Tags {
+  // A missing crisis answer throws (see num): we never treat "no answer" as "no risk".
+  const crisis = Object.keys(CRISIS_QUESTIONS).some((name) => num(answers[name], 'noul') >= CRISIS_MIN);
+  const themes = THEMES.filter((t) => num(answers[`theme_${t.key}`], 'noul') >= THEME_MIN).map((t) => t.key);
+  return { themes, crisis };
+}
 const HIGHLIGHT_MIN = 0.7;
 const MAX_HIGHLIGHTS_PER_SIGNAL = 3;
 const MAX_SENTENCES = 40;
@@ -78,11 +115,15 @@ const num = (answer: unknown, field: 'score' | 'noul'): number => {
   return v;
 };
 
+export function createJevTagger(ask: JevAsk): Tag {
+  return async (text) => readTags(await ask(text, tagQuestions()));
+}
+
 export function createJevClassifier(ask: JevAsk): Classify {
   return async (text) => {
     const sentences = splitSentences(text);
 
-    const questions: Questions = {};
+    const questions: Questions = tagQuestions();
     for (const s of SIGNALS) questions[`level_${s}`] = score(LEVELS[s].question, LEVELS[s].levels);
     sentences.forEach((sentence, i) => {
       for (const s of SIGNALS) questions[`s${i}_${s}`] = noul({ task: SENTENCE_TASK[s], sentence });
@@ -109,6 +150,6 @@ export function createJevClassifier(ask: JevAsk): Classify {
         .map((h) => ({ text: h.text, signal: s })),
     );
 
-    return { scores, highlights };
+    return { scores, highlights, ...readTags(answers) };
   };
 }

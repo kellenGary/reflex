@@ -6,7 +6,8 @@ import { formatLong, formatShort, weekStartKey } from '@/lib/dates';
 import { plantStateForWeek, vitalityLabel } from '@/lib/plant';
 import { dailySeries } from '@/lib/series';
 import { SIGNALS } from '@/lib/signals';
-import { Button, Container, Plant, Reveal, Screen, ScoreBar, TrendChart, Wordmark } from '@/shared-components';
+import { compareFeeling, feelingLabel, readAsFeeling } from '@/lib/feeling';
+import { Button, Container, Face, Plant, Reveal, Screen, ScoreBar, TrendChart, Wordmark, LoadingScreen } from '@/shared-components';
 import { useEntries } from '@/state/entries';
 
 /**
@@ -28,7 +29,7 @@ export function FinishPage() {
   const before = plantStateForWeek(entries, weekStart, entry?.date);
   const after = plantStateForWeek(entries, weekStart);
 
-  if (status !== 'ready') return null;
+  if (status !== 'ready') return <LoadingScreen />;
   if (!entry) return <Redirect href="/" />;
 
   const series = dailySeries(entries, entry.date, 14);
@@ -54,19 +55,42 @@ export function FinishPage() {
             </Text>
             <Text
               accessibilityRole="header"
-              className="mt-2.5 text-[32px] font-bold leading-9 tracking-tighter text-ink sm:text-[42px] sm:leading-[46px]"
+              className="mt-2.5 text-[32px] font-bold leading-9 tracking-normal text-ink sm:text-[42px] sm:leading-[46px]"
             >
               Here&apos;s how today read
             </Text>
           </Reveal>
 
-          <View className="mt-11 flex-col gap-8 lg:flex-row lg:gap-10">
+          <View className="mt-11 flex-col gap-8 sm:flex-row sm:gap-6 lg:gap-10">
             {SIGNALS.map((s, i) => (
               <Reveal key={s.key} delay={300 + i * 200} style={{ flex: 1 }}>
                 <ScoreBar signal={s.key} value={entry.scores[s.key]} size="lg" from={0} delay={500 + i * 200} />
               </Reveal>
             ))}
           </View>
+
+          {entry.feeling !== null && (
+            <Reveal delay={1000} style={{ marginTop: 32 }}>
+              <View className="gap-4 rounded-3xl bg-surface p-5">
+                <View className="flex-row items-center gap-6">
+                  <View className="items-center gap-1.5">
+                    <Face level={entry.feeling} size={44} />
+                    <Text className="text-xs text-muted">You felt</Text>
+                    <Text className="text-sm font-semibold text-ink">{feelingLabel(entry.feeling)}</Text>
+                  </View>
+                  <Text className="text-xl text-muted">↔</Text>
+                  <View className="items-center gap-1.5">
+                    <Face level={readAsFeeling(entry.scores)} size={44} />
+                    <Text className="text-xs text-muted">It read as</Text>
+                    <Text className="text-sm font-semibold text-ink">{feelingLabel(readAsFeeling(entry.scores))}</Text>
+                  </View>
+                </View>
+                <Text className="max-w-[48ch] text-[15px] leading-[22px] text-body">
+                  {compareFeeling(entry.feeling, readAsFeeling(entry.scores))}
+                </Text>
+              </View>
+            </Reveal>
+          )}
 
           {entries.length === 1 && (
             <Reveal delay={1100} style={{ marginTop: 32 }}>

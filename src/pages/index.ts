@@ -3,3 +3,8 @@ export { FinishPage } from './Finish';
 export { HomePage } from './Home';
 export { WritePage } from './Write';
 export { SignInPage } from './SignIn';
+export { GardenPage } from './Garden';
+export { PatternsPage } from './Patterns';
+export { SafetyPage } from './Safety';
+export { SettingsPage } from './Settings';
+export { WeekPage } from './Week';

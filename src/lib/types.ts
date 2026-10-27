@@ -11,6 +11,12 @@ export type Entry = {
   text: string;
   scores: Scores;
   highlights: Highlight[];
+  /** Theme keys (see lib/themes.ts) the entry is about. Empty for entries not yet tagged. */
+  themes: string[];
+  /** True if the entry contains crisis language. Drives the support screen, never shown as a label. */
+  crisis: boolean;
+  /** The check-in before writing: 1 (rough) to 5 (great), or null if skipped. */
+  feeling: number | null;
 };
 
-export type Classification = Pick<Entry, 'scores' | 'highlights'>;
+export type Classification = Pick<Entry, 'scores' | 'highlights' | 'themes' | 'crisis'>;

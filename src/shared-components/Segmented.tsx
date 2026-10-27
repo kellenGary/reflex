@@ -8,7 +8,7 @@ type SegmentedProps<T extends string> = {
 
 export function Segmented<T extends string>({ options, value, onChange }: SegmentedProps<T>) {
   return (
-    <View className="flex-row gap-0.5" accessibilityRole="tablist">
+    <View className="flex-row flex-wrap gap-0.5" accessibilityRole="tablist">
       {options.map((o) => {
         const active = o.value === value;
         return (
@@ -17,7 +17,7 @@ export function Segmented<T extends string>({ options, value, onChange }: Segmen
             accessibilityRole="tab"
             accessibilityState={{ selected: active }}
             onPress={() => onChange(o.value)}
-            className={`rounded-full px-2.5 py-1 ${active ? 'bg-ink' : ''}`}
+            className={`rounded-full px-3 py-1.5 ${active ? 'bg-ink' : ''}`}
           >
             <Text className={`text-xs font-semibold ${active ? 'text-cream' : 'text-muted'}`}>{o.label}</Text>
           </Pressable>

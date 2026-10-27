@@ -18,7 +18,7 @@ export type PlantState = {
 const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
 
 /** 0-100 wellbeing from one set of scores: meaning up is good, anxiety and depression down are good. */
-const wellbeing = (s: Scores) => (s.meaning + (100 - s.anxiety) + (100 - s.depression)) / 3;
+export const wellbeing = (s: Scores) => (s.meaning + (100 - s.anxiety) + (100 - s.depression)) / 3;
 
 // Typical scores land in the 40s-70s, so stretch that band across the plant's full range.
 const WORST = 35;

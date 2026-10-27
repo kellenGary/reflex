@@ -5,20 +5,28 @@ import { StatusBar } from 'expo-status-bar';
 import { Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { LoadingScreen } from '@/shared-components';
 import { AuthProvider, useAuth } from '@/state/auth';
 import { EntriesProvider } from '@/state/entries';
 import { TransitionProvider } from '@/state/transition';
-import { colors } from '@/theme/colors';
+import { ThemeProvider, useTheme } from '@/state/theme';
+
+function ThemedStatusBar() {
+  return <StatusBar style={useTheme().isDark ? 'light' : 'dark'} />;
+}
 
 function Routes() {
   const { session, loading } = useAuth();
-  if (loading) return null; // reading the stored session; avoids flashing the sign-in screen
+  const { palette } = useTheme();
+  if (loading) return <LoadingScreen />; // reading the stored session; avoids flashing the sign-in screen
 
   return (
-    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.cream }, animation: 'fade' }}>
+    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: palette.cream }, animation: 'fade' }}>
       <Stack.Protected guard={!!session}>
-        <Stack.Screen name="index" />
+        <Stack.Screen name="(tabs)" />
         <Stack.Screen name="finish" />
+        <Stack.Screen name="safety" />
+        <Stack.Screen name="week/[start]" />
         <Stack.Screen
           name="entry/[date]"
           options={{ animation: Platform.OS === 'web' ? 'fade' : 'slide_from_right' }}
@@ -35,14 +43,16 @@ function Routes() {
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
-      <AuthProvider>
-        <EntriesProvider>
-          <TransitionProvider>
-            <Routes />
-            <StatusBar style="dark" />
-          </TransitionProvider>
-        </EntriesProvider>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <EntriesProvider>
+            <TransitionProvider>
+              <Routes />
+              <ThemedStatusBar />
+            </TransitionProvider>
+          </EntriesProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </SafeAreaProvider>
   );
 }

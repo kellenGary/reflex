@@ -12,23 +12,21 @@ import { useTransition } from '@/state/transition';
 
 type Mode = 'day' | 'week';
 
-export function Sidebar() {
+/** How many entries this week, for the streak line and the plant. */
+function useWeekCount() {
+  const { entries, today } = useEntries();
+  const thisWeek = weekStartKey(today);
+  return entries.filter((e) => weekStartKey(e.date) === thisWeek).length;
+}
+
+/** The write button and the streak: the part of the sidebar that is always worth seeing first. */
+export function SidebarActions() {
   const router = useRouter();
   const { go } = useTransition();
-  const { entries, today, streak, getEntry } = useEntries();
-  const [mode, setMode] = useState<Mode>('day');
+  const { today, streak, getEntry } = useEntries();
   const streakShown = Math.round(useTweenedNumber(streak, 1000, 250, 0));
-  const barFill = useTween(1000, 600);
-
+  const weekCount = useWeekCount();
   const written = !!getEntry(today);
-  const thisWeek = weekStartKey(today);
-  const weekEntries = entries.filter((e) => weekStartKey(e.date) === thisWeek);
-  const weekCount = weekEntries.length;
-  const plant = plantStateForWeek(entries, thisWeek);
-
-  const series = mode === 'day' ? dailySeries(entries, today, 14) : weeklySeries(entries, today, 8);
-  const firstLabel = formatShort(series.keys[0]);
-  const lastLabel = mode === 'day' ? 'Today' : 'This week';
 
   return (
     <View>
@@ -55,7 +53,24 @@ export function Sidebar() {
           Week {weekNumber(today)}, {weekCount} of 7
         </Text>
       </View>
+    </View>
+  );
+}
 
+/** The trend chart and this week's plant. On small screens these sit below the journal. */
+export function SidebarInsights() {
+  const { entries, today } = useEntries();
+  const [mode, setMode] = useState<Mode>('day');
+  const barFill = useTween(1000, 600);
+  const weekCount = useWeekCount();
+  const plant = plantStateForWeek(entries, weekStartKey(today));
+
+  const series = mode === 'day' ? dailySeries(entries, today, 14) : weeklySeries(entries, today, 8);
+  const firstLabel = formatShort(series.keys[0]);
+  const lastLabel = mode === 'day' ? 'Today' : 'This week';
+
+  return (
+    <View>
       <View className="border-b border-line pb-6 pt-5">
         <View className="mb-3.5 flex-row items-center justify-between">
           <Text className="text-[15px] font-semibold text-ink">Trend</Text>
@@ -99,8 +114,8 @@ export function Sidebar() {
             {weekCount === 0 ? 'Not planted yet' : vitalityLabel(plant.vitality)}
           </Text>
         </View>
-        <View className="w-56 self-center lg:w-full">
-          <Plant state={plant} sway />
+        <View className="w-48 self-center">
+          <Plant tight state={plant} sway />
         </View>
         <View className="mt-3.5 h-1 rounded-sm bg-track">
           <View
@@ -116,6 +131,16 @@ export function Sidebar() {
             : `${weekCount} of 7 entries. Shaped by your average so far.`}
         </Text>
       </View>
+    </View>
+  );
+}
+
+/** Both parts together, for the desktop sidebar. */
+export function Sidebar() {
+  return (
+    <View>
+      <SidebarActions />
+      <SidebarInsights />
     </View>
   );
 }

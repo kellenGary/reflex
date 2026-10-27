@@ -1,15 +1,15 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo } from 'react';
-import { Platform, Pressable, Text, View, type ViewStyle } from 'react-native';
+import { Platform, Text, View, type ViewStyle } from 'react-native';
 
 import { useIsWide } from '@/lib/breakpoints';
 import { weekStartKey } from '@/lib/dates';
 import { plantStateForWeek } from '@/lib/plant';
-import { Button, Container, Reveal, Screen, Wordmark } from '@/shared-components';
+import { Button, Container, PageHeader, Reveal, Screen, Wordmark, LoadingBlock } from '@/shared-components';
 import { useAuth } from '@/state/auth';
 import { useEntries } from '@/state/entries';
 import { Feed, type FeedGroup } from './components/Feed';
-import { Sidebar } from './components/Sidebar';
+import { Sidebar, SidebarActions, SidebarInsights } from './components/Sidebar';
 
 const introSent = new Set<string>();
 
@@ -50,7 +50,7 @@ export function HomePage() {
 
   if (status !== 'ready') {
     return (
-      <Screen>
+      <Screen inTabs>
         <Container>
           <View className="h-[72px] justify-center">
             <Wordmark />
@@ -77,7 +77,7 @@ export function HomePage() {
                 )}
               </>
             ) : (
-              <Text className="text-base text-muted">Loading your journal…</Text>
+              <LoadingBlock message="Loading your journal…" />
             )}
           </View>
         </Container>
@@ -86,24 +86,36 @@ export function HomePage() {
   }
 
   return (
-    <Screen>
+    <Screen inTabs>
       <Container>
-        <View className="h-[72px] flex-row items-center justify-between">
-          <Wordmark />
-          <Pressable accessibilityRole="button" onPress={signOut} className="min-h-11 justify-center">
-            <Text className="text-sm text-muted">Sign out</Text>
-          </Pressable>
-        </View>
-        <View className="mt-6 flex-col-reverse items-center gap-12 lg:flex-row lg:items-start lg:gap-[72px]">
-          <View className="w-full max-w-[680px] lg:flex-1">
-            <Feed groups={groups} />
+        <PageHeader />
+        {isWide ? (
+          <View className="flex-row items-start gap-[72px]">
+            <View className="w-full max-w-[680px] flex-1">
+              <Feed groups={groups} />
+            </View>
+            <View className="w-[340px]" style={sticky}>
+              <Reveal delay={100}>
+                <Sidebar />
+              </Reveal>
+            </View>
           </View>
-          <View className="w-full max-w-[680px] lg:w-[340px] lg:max-w-[340px]" style={isWide ? sticky : undefined}>
-            <Reveal delay={100}>
-              <Sidebar />
-            </Reveal>
+        ) : (
+          // Phones and tablets: write button and streak first, then the journal, then the trend and plant.
+          <View className="items-center gap-10">
+            <View className="w-full max-w-[680px]">
+              <Reveal delay={100}>
+                <SidebarActions />
+              </Reveal>
+            </View>
+            <View className="w-full max-w-[680px]">
+              <Feed groups={groups} />
+            </View>
+            <View className="w-full max-w-[680px]">
+              <SidebarInsights />
+            </View>
           </View>
-        </View>
+        )}
       </Container>
     </Screen>
   );

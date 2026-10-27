@@ -20,7 +20,7 @@ type EntriesContextValue = {
   streak: number;
   getEntry: (date: string) => Entry | undefined;
   /** Saves today's entry. The server scores it. */
-  addEntry: (text: string) => Promise<Entry>;
+  addEntry: (text: string, feeling?: number | null) => Promise<Entry>;
   /** Edits an entry and re-scores it. */
   updateEntry: (date: string, text: string) => Promise<Entry>;
 };
@@ -62,8 +62,8 @@ export function EntriesProvider({ children }: { children: ReactNode }) {
   const getEntry = useCallback((date: string) => entries.find((e) => e.date === date), [entries]);
 
   const save = useCallback(
-    async (date: string, text: string): Promise<Entry> => {
-      const entry = await api.saveEntry(date, text);
+    async (date: string, text: string, feeling?: number | null): Promise<Entry> => {
+      const entry = await api.saveEntry(date, text, feeling);
       setResult((prev) =>
         prev && prev.key === loadKey
           ? { ...prev, entries: [entry, ...prev.entries.filter((e) => e.date !== date)].sort(newestFirst) }
@@ -74,7 +74,7 @@ export function EntriesProvider({ children }: { children: ReactNode }) {
     [loadKey],
   );
 
-  const addEntry = useCallback((text: string) => save(today, text), [save, today]);
+  const addEntry = useCallback((text: string, feeling?: number | null) => save(today, text, feeling), [save, today]);
   const updateEntry = useCallback((date: string, text: string) => save(date, text), [save]);
 
   const streak = useMemo(() => {

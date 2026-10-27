@@ -1,0 +1,1 @@
+ALTER TABLE "entries" ADD COLUMN "meta_enc" text;
