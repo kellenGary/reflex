@@ -75,7 +75,7 @@ export function WritePage() {
     <View className="flex-1 bg-cream">
       <BloomBackground />
       <SafeAreaView style={{ flex: 1 }}>
-        <View className="h-[72px] flex-row items-center justify-between px-5 lg:px-8">
+        <View className="h-[60px] flex-row items-center justify-between px-5 lg:px-8">
           <Wordmark />
           <View className="flex-row items-center gap-5">
             <Pressable accessibilityRole="button" onPress={close} className="min-h-11 justify-center">

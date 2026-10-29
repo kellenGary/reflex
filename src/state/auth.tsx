@@ -10,7 +10,7 @@ type AuthContextValue = {
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   /** Resolves true if the user can go straight in, false if they must confirm their email first. */
-  signUp: (email: string, password: string) => Promise<boolean>;
+  signUp: (email: string, password: string, fullName: string) => Promise<boolean>;
   signOut: () => Promise<void>;
 };
 
@@ -44,8 +44,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw error;
   }, []);
 
-  const signUp = useCallback(async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signUp({ email, password });
+  const signUp = useCallback(async (email: string, password: string, fullName: string) => {
+    const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { full_name: fullName } } });
     if (error) throw error;
     return !!data.session;
   }, []);

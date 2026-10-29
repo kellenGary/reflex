@@ -44,7 +44,7 @@ export function FinishPage() {
   return (
     <Screen>
       <Container>
-        <View className="h-[72px] flex-row items-center">
+        <View className="h-[60px] flex-row items-center">
           <Wordmark />
         </View>
 

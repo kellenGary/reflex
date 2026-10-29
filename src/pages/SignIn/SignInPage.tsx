@@ -15,15 +15,21 @@ export function SignInPage() {
   const { signIn, signUp } = useAuth();
   const { shadow } = useColors();
   const [mode, setMode] = useState<'in' | 'up'>('up');
+  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const emailRef = useRef<ComponentRef<typeof TextInput>>(null);
   const passwordRef = useRef<ComponentRef<typeof TextInput>>(null);
 
   const creating = mode === 'up';
-  const canSubmit = email.trim().length > 3 && password.length >= (creating ? 8 : 1) && !busy;
+  const canSubmit =
+    (!creating || fullName.trim().length > 0) &&
+    email.trim().length > 3 &&
+    password.length >= (creating ? 8 : 1) &&
+    !busy;
 
   const switchMode = (next: 'in' | 'up') => {
     setMode(next);
@@ -38,7 +44,7 @@ export function SignInPage() {
     setNotice(null);
     try {
       if (creating) {
-        const signedIn = await signUp(email.trim(), password);
+        const signedIn = await signUp(email.trim(), password, fullName.trim());
         if (!signedIn) {
           setNotice('Check your email to confirm your account, then sign in.');
           setMode('in');
@@ -57,7 +63,12 @@ export function SignInPage() {
     <View className="flex-1 bg-cream">
       <BloomBackground />
       <SafeAreaView style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1 }}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          automaticallyAdjustKeyboardInsets
+        >
           <View className="w-full max-w-[1120px] flex-1 flex-col self-center px-5 lg:flex-row lg:items-center lg:gap-16 lg:px-8">
             {/* Welcome */}
             <View className="py-6 lg:flex-1 lg:py-0">
@@ -121,7 +132,21 @@ export function SignInPage() {
                   </Text>
 
                   <View className="mt-6 gap-4">
+                    {creating && (
+                      <Field
+                        label="Full name"
+                        value={fullName}
+                        onChangeText={setFullName}
+                        placeholder="Your name"
+                        autoCapitalize="words"
+                        autoComplete="name"
+                        textContentType="name"
+                        returnKeyType="next"
+                        onSubmitEditing={() => emailRef.current?.focus()}
+                      />
+                    )}
                     <Field
+                      ref={emailRef}
                       label="Email"
                       value={email}
                       onChangeText={setEmail}

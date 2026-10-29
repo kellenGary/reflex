@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Platform, Pressable, Text, TextInput, View, type TextStyle } from 'react-native';
 
@@ -17,6 +18,7 @@ const monthYear = (iso?: string) =>
   iso ? new Date(iso).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : '';
 
 export function SettingsPage() {
+  const router = useRouter();
   const { session, signOut } = useAuth();
   const { entries, streak, reload } = useEntries();
   const { appearance, setAppearance, timeOfDay, setTimeOfDay, phase } = useTheme();
@@ -175,20 +177,6 @@ export function SettingsPage() {
               </Card>
             </Reveal>
 
-            <Reveal delay={200}>
-              <Card title="Privacy">
-                <Row
-                  first
-                  title="Encrypted before it is stored"
-                  description="Your entries are encrypted by the server before they reach the database, and are shown only to you."
-                />
-                <Row
-                  title="Read by a model to be scored"
-                  description="To score an entry and find its themes, its text is sent to TypeSafe, whose model reads it."
-                />
-              </Card>
-            </Reveal>
-
             <Reveal delay={280}>
               <Card title="Account">
                 <Row
@@ -249,6 +237,14 @@ export function SettingsPage() {
               </Card>
             </Reveal>
           </View>
+
+          <Pressable
+            accessibilityRole="link"
+            onPress={() => router.push('/privacy')}
+            className="mt-10 self-center py-3"
+          >
+            <Text className="text-[13px] text-muted underline">Privacy and how your entries are used</Text>
+          </Pressable>
         </Column>
       </Container>
     </Screen>

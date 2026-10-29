@@ -9,7 +9,7 @@ import { Button, Container, PageHeader, Reveal, Screen, Wordmark, LoadingBlock }
 import { useAuth } from '@/state/auth';
 import { useEntries } from '@/state/entries';
 import { Feed, type FeedGroup } from './components/Feed';
-import { Sidebar, SidebarActions, SidebarInsights } from './components/Sidebar';
+import { MobileInsights, Sidebar, SidebarActions } from './components/Sidebar';
 
 const introSent = new Set<string>();
 
@@ -52,7 +52,7 @@ export function HomePage() {
     return (
       <Screen inTabs>
         <Container>
-          <View className="h-[72px] justify-center">
+          <View className="h-[60px] justify-center">
             <Wordmark />
           </View>
           <View className="items-center gap-4 pt-24">
@@ -101,18 +101,20 @@ export function HomePage() {
             </View>
           </View>
         ) : (
-          // Phones and tablets: write button and streak first, then the journal, then the trend and plant.
-          <View className="items-center gap-10">
+          // Phones and tablets: write button and streak, then a compact plant and trend card, then the journal.
+          <View className="items-center gap-8">
             <View className="w-full max-w-[680px]">
               <Reveal delay={100}>
                 <SidebarActions />
               </Reveal>
             </View>
             <View className="w-full max-w-[680px]">
-              <Feed groups={groups} />
+              <Reveal delay={200}>
+                <MobileInsights />
+              </Reveal>
             </View>
             <View className="w-full max-w-[680px]">
-              <SidebarInsights />
+              <Feed groups={groups} />
             </View>
           </View>
         )}

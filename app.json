@@ -1,13 +1,21 @@
 {
   "expo": {
-    "name": "reflex",
+    "name": "lilac",
     "slug": "reflex",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": false,
+      "bundleIdentifier": "com.kellengary.lilac",
+      "buildNumber": "1",
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -26,7 +34,20 @@
     "plugins": [
       "expo-router",
       "expo-status-bar",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#F8F3E6",
+          "dark": {
+            "backgroundColor": "#1C1B16",
+            "image": "./assets/splash-icon-dark.png"
+          }
+        }
+      ]
     ],
     "scheme": "reflex"
   }

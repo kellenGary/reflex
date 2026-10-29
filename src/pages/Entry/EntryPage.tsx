@@ -6,7 +6,18 @@ import { useIsWide } from '@/lib/breakpoints';
 import { addDays, formatLong, formatShort, weekNumber } from '@/lib/dates';
 import { dailySeries } from '@/lib/series';
 import { SIGNALS } from '@/lib/signals';
-import { Button, Container, Face, PageHeader, Reveal, Screen, ScoreBar, Switch, TrendChart, LoadingScreen } from '@/shared-components';
+import {
+  Button,
+  Container,
+  Face,
+  PageHeader,
+  Reveal,
+  Screen,
+  ScoreBar,
+  Switch,
+  TrendChart,
+  LoadingScreen,
+} from '@/shared-components';
 import { feelingLabel } from '@/lib/feeling';
 import { themeLabel } from '@/lib/themes';
 import { saveErrorMessage } from '@/services/api';
@@ -80,31 +91,37 @@ export function EntryPage() {
   return (
     <Screen>
       <Container>
-        <PageHeader back />
+        <PageHeader
+          actions={
+            editing ? (
+              <>
+                <Button
+                  variant="ghost"
+                  label="Cancel"
+                  onPress={() => {
+                    setEditing(false);
+                    setError(null);
+                  }}
+                />
+                <Button label={saving ? 'Scoring…' : 'Save'} onPress={save} disabled={!draft.trim() || saving} />
+              </>
+            ) : (
+              <>
+                <Button
+                  variant="ghost"
+                  label="Back"
+                  onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+                />
+                <Button variant="primary" label="Edit" onPress={startEdit} />
+              </>
+            )
+          }
+        />
         <View className="flex-col items-center gap-12 lg:flex-row lg:items-start lg:gap-[72px]">
           <View className="w-full min-w-0 max-w-[680px] lg:flex-1">
-            <View className="min-h-10 flex-row items-center justify-between gap-3">
-              <Text className="text-xs font-semibold uppercase tracking-widest text-muted">
-                Week {weekNumber(entry.date)}
-              </Text>
-              <View className="flex-row items-center gap-3">
-                {editing ? (
-                  <>
-                    <Button
-                      variant="ghost"
-                      label="Cancel"
-                      onPress={() => {
-                        setEditing(false);
-                        setError(null);
-                      }}
-                    />
-                    <Button label={saving ? 'Scoring…' : 'Save'} onPress={save} disabled={!draft.trim() || saving} />
-                  </>
-                ) : (
-                  <Button variant="ghost" label="Edit" onPress={startEdit} />
-                )}
-              </View>
-            </View>
+            <Text className="text-xs font-semibold uppercase tracking-widest text-muted">
+              Week {weekNumber(entry.date)}
+            </Text>
             <View className="-ml-3 mt-2 flex-row items-center gap-1.5">
               <DayArrow label="Previous entry" glyph="‹" onPress={older ? () => goTo(older) : undefined} />
               <Text

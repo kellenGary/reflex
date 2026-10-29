@@ -8,3 +8,5 @@ export { PatternsPage } from './Patterns';
 export { SafetyPage } from './Safety';
 export { SettingsPage } from './Settings';
 export { WeekPage } from './Week';
+export { ConsentPage } from './Consent';
+export { PrivacyPage } from './Privacy';
